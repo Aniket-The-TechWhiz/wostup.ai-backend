@@ -1,0 +1,6 @@
+.env
+/.env.local
+/.env.development.local
+/node_modules
+/scripts/auth_e2e_test.js
+scripts/auth_e2e_test.js
