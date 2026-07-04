@@ -1,7 +1,3 @@
-
-
-
-
 const { createClient } = require("redis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
