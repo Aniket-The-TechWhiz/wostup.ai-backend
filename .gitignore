@@ -4,3 +4,6 @@
 /node_modules
 /scripts/auth_e2e_test.js
 scripts/auth_e2e_test.js
+*.md
+notes/*.md
+TODO.md

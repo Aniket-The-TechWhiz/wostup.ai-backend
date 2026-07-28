@@ -1,3 +1,16 @@
+function safeRequire(path, exportName) {
+  try {
+    return require(path);
+  } catch (error) {
+    if (error && error.code === "MODULE_NOT_FOUND") {
+      console.warn(`Optional model missing: ${exportName}`);
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 module.exports = {
   User: require("./users.model"),
   Workspace: require("./workspaces.model"),
@@ -8,15 +21,16 @@ module.exports = {
   Update: require("./updates.model"),
   Activity: require("./activities.model"),
   Notification: require("./notifications.model"),
-  AiSuggestion: require("./ai_suggestions.model"),
-  AiAction: require("./ai_actions.model"),
-  AiAnalysis: require("./ai_analysis.model"),
-  AiContextSnapshot: require("./ai_context_snapshots.model"),
-  AiExecutionLog: require("./ai_execution_logs.model"),
-  AiRiskReport: require("./ai_risk_reports.model"),
+  AiSuggestion: safeRequire("./ai_suggestions.model", "AiSuggestion"),
+  AiAction: safeRequire("./ai_actions.model", "AiAction"),
+  AiAnalysis: safeRequire("./ai_analysis.model", "AiAnalysis"),
+  AiContextSnapshot: safeRequire("./ai_context_snapshots.model", "AiContextSnapshot"),
+  AiExecutionLog: safeRequire("./ai_execution_logs.model", "AiExecutionLog"),
+  AiRiskReport: safeRequire("./ai_risk_reports.model", "AiRiskReport"),
   AuthAccount: require("./authAccounts.model"),
   AuthSession: require("./authSessions.model"),
   AuthRefreshToken: require("./authRefreshTokens.model"),
   AuthPasswordResetToken: require("./authPasswordResetTokens.model"),
   AuthEmailVerificationToken: require("./authEmailVerificationTokens.model"),
+  FailedQueueJob: require("./failedQueueJobs.model"),
 };

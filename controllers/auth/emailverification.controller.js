@@ -1,4 +1,4 @@
-const { issueAndSendVerificationEmail, verifyEmailToken } = require("../../services/emailVerificationService");
+const { issueAndQueueVerificationEmail, verifyEmailToken } = require("../../services/emailVerificationService");
 const { getUserById } = require("../../services/userService");
 
 async function sendVerification(req, res) {
@@ -18,9 +18,21 @@ async function sendVerification(req, res) {
       return;
     }
 
-    await issueAndSendVerificationEmail(user);
+    const result = await issueAndQueueVerificationEmail(user);
 
-    res.status(200).json({ message: "Verification email sent" });
+    const response = {
+      message: "Verification email queued",
+      verificationEmailQueued: result.queued,
+    };
+
+    const isDevMode = process.env.NODE_ENV === "dev" || process.env.NODE_ENV === "development";
+    if (isDevMode) {
+      response.verificationToken = result.rawToken;
+      response.verificationTokenExpiresAt = result.expiresAt;
+      response.verificationUrl = result.verificationUrl;
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ error: error.message || "Failed to send verification email" });
   }

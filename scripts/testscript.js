@@ -1,15 +1,17 @@
-const format = {
-    route: string,
-    method: string,
-    workspace: string,
-    project: string,
-    user: string,
-}
+/**
+ * @typedef {Object} RouteFormat
+ * @property {string} route
+ * @property {string} method
+ * @property {string} workspace
+ * @property {string} project
+ * @property {string} user
+ */
+
 
 async function getData() {
     const routes = await fetch("D:\\wostup_v4\\startup-navigator\\docs\\API_ROUTES.json");
     const data = await routes.json();
-    data.routes.forEach(route => {
+    data.routes.forEach(async(route)=> {
         // Process each route
         if (route.method === "POST") {
             await fetch(`http://localhost:3000${route.path}`, {
@@ -37,5 +39,5 @@ async function getData() {
                 }
             });
         }
-    });
+    }));
 }
