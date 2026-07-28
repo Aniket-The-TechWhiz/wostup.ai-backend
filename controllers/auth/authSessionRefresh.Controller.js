@@ -5,7 +5,7 @@ const AuthRefreshToken = require("../../models/authRefreshTokens.model");
 const AuthSession = require("../../models/authSessions.model");
 const asyncHandler = require("express-async-handler");
 const crypto = require("crypto");
-const { getUserById } = require("../../services/userService");
+const { getUserById } = require("../../services/userProfileService");
 const { generateAccessToken } = require("../../utils/jwt");
 const { User } = require("../../models");
 

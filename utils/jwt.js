@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const TEMP_TOKEN_EXPIRY = "5m"; // 5 minutes
 
 function generateAccessToken(user) {
   const payload = {
@@ -11,8 +12,20 @@ function generateAccessToken(user) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
 }
 
-function generateRefreshTokenPlaceholder() {
-  return null;
+// 🔥 NEW: Generate temporary token for OTP verification
+function generateTemporaryToken(userId) {
+  return jwt.sign({ sub: String(userId), purpose: "otp" }, JWT_SECRET, { expiresIn: TEMP_TOKEN_EXPIRY });
+}
+
+// 🔥 NEW: Verify temporary token
+function verifyTemporaryToken(token) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.purpose !== "otp") return null;
+    return decoded;
+  } catch (_error) {
+    return null;
+  }
 }
 
 function verifyAccessToken(token) {
@@ -32,4 +45,6 @@ module.exports = {
   generateAccessToken,
   verifyAccessToken,
   extractTokenFromHeader,
+  generateTemporaryToken,
+  verifyTemporaryToken,
 };
