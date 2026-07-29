@@ -144,32 +144,32 @@ const deleteTaskController = async_handler(async (req, res) => {
 
 
 // filter api for task:
-const filterTaskController = async_handler(async (req, res) => {
-    const { status, userid } = req.params;
-    if (!status || !userid) {
-        return res.status(400).json({ message: "status or user id not provided" });
-    }
+// const filterTaskController = async_handler(async (req, res) => {
+//     const { status, userid } = req.params;
+//     if (!status || !userid) {
+//         return res.status(400).json({ message: "status or user id not provided" });
+//     }
 
 
 
-    const { statuscode, data } = await taskFilterService(status, userid);
-    return res.status(statuscode || 200).json({ data: data });
-})
+//     const { statuscode, data } = await taskFilterService(status, userid);
+//     return res.status(statuscode || 200).json({ data: data });
+// })
 
-const createTaskMadeByAIController=async_handler(async(req,res)=>{
-    const {action,wokspaceId,projectId,userId,tasks}=req.body;
-    if(action==1){
-       const status= createTaskMadeByAI(workspaceId,userId,tasks,projectId);
-    }
+// const createTaskMadeByAIController=async_handler(async(req,res)=>{
+//     const {action,wokspaceId,projectId,userId,tasks}=req.body;
+//     if(action==1){
+//        const status= createTaskMadeByAI(workspaceId,userId,tasks,projectId);
+//     }
 
-    if(status==200){
-        return res.status(200).json("Tasks Created By AI");
-    }
-    if(status==500){
-        return res.status(500).json("Internal  Server Erro");
-    }
+//     if(status==200){
+//         return res.status(200).json("Tasks Created By AI");
+//     }
+//     if(status==500){
+//         return res.status(500).json("Internal  Server Erro");
+//     }
 
-});
+// });
 
 module.exports = {
     createTaskController,

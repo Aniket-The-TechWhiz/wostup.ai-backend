@@ -1,5 +1,16 @@
 const { createWorkspaceUpdateService, getWorkspaceUpdatesService } = require("../services/updateService");
 
+/**
+ * NOTE ON SCALING: also fine as-is, no queue needed. `create_workspace_update`
+ * broadcasts via `io.to(`workspace:${workspaceId}`).emit(...)` — a room
+ * broadcast, not a pub/sub fan-out each instance independently subscribes
+ * to and processes. With the Socket.IO Redis adapter (@socket.io/redis-adapter)
+ * configured on `io`, `.to(room).emit()` already correctly reaches members
+ * of that room regardless of which server instance they're connected to,
+ * and the DB write above it only happens once (triggered by the one
+ * socket event that fired it) — no duplication risk the way pub/sub had.
+ */
+
 module.exports = (io, pubClient) => {
     io.on("connection", (socket) => {
         socket.on("create_workspace_update", async (payload, callback) => {

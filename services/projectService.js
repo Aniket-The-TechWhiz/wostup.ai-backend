@@ -1,6 +1,8 @@
-const { Project, Workspace, WorkspaceMember } = require("../models/index");
+const { Project, WorkspaceMember } = require("../models/index");
 
-async function createProjectService(workspaceId, name, userId, status, description, progress = 0, dueDate) {
+async function createProjectService(payload, userId) {
+    const { workspaceId, name, key, status, priority, visibility, description, progress, startDate, dueDate } = payload;
+    
     const isMember = await WorkspaceMember.findOne({
         workspaceId,
         userId
@@ -10,20 +12,34 @@ async function createProjectService(workspaceId, name, userId, status, descripti
         return 403;
     }
 
-    const check=await Project.findOne({
-        name:name
-    });
+    // Checking uniqueness based on workspaceId and key, as per the new unique index
+    const check = await Project.findOne({ workspaceId, key });
 
-    if(check){
+    if (check) {
         return 409;
     }
 
-    const parsedDueDate = new Date(dueDate);
-    if (Number.isNaN(parsedDueDate.getTime())) {
-        return 400;
-    }
+    const projectData = {
+        workspaceId,
+        name,
+        key,
+        owner: userId, // Updated from ownerUserId to owner
+        createdBy: userId,
+        members: [{ userId: userId, role: "Owner" }], // Add creator as the first member
+        description: description || "",
+        progress: progress || 0,
+    };
 
-    await Project.create({workspaceId, name, ownerUserId: userId, createdBy: userId, status, description, progress, dueDate: parsedDueDate});
+    // Add optional Enum fields if they exist
+    if (status) projectData.status = status;
+    if (priority) projectData.priority = priority;
+    if (visibility) projectData.visibility = visibility;
+
+    // Handle optional dates
+    if (dueDate) projectData.dueDate = new Date(dueDate);
+    if (startDate) projectData.startDate = new Date(startDate);
+
+    await Project.create(projectData);
 
     return 200;
 }
@@ -46,13 +62,25 @@ async function updateProjectService(projectId, userId, body) {
         }
         body.dueDate = parsedDueDate;
     }
+    
+    if (body.startDate !== undefined) {
+        const parsedStartDate = new Date(body.startDate);
+        if (Number.isNaN(parsedStartDate.getTime())) {
+            return 400;
+        }
+        body.startDate = parsedStartDate;
+    }
+
+    // Update auditing fields
+    body.lastUpdatedBy = userId;
+    body.lastActivityAt = Date.now();
 
     await Project.updateOne(
-        { _id: projectId }, // Filter
-        { $set: body }                // Data from body
+        { _id: projectId }, 
+        { $set: body }                
     );
 
-    return  200;
+    return 200;
 }
 
 async function deleteProjectService(projectId, userId) {
@@ -66,23 +94,44 @@ async function deleteProjectService(projectId, userId) {
         return 403;
     }
 
-    await Project.deleteOne({ _id: projectId });
+    // Switched to soft deletion leveraging the new schema attributes
+    await Project.updateOne(
+        { _id: projectId },
+        { 
+            $set: { 
+                isArchived: true, 
+                archivedAt: Date.now(), 
+                deletedAt: Date.now(),
+                lastUpdatedBy: userId,
+                lastActivityAt: Date.now()
+            } 
+        }
+    );
 
     return 200;
 }
 
 async function getProjectServiceById(projectId) {
-    const data = await Project.findById({
-        _id: projectId
+    // Ensuring soft-deleted projects are omitted
+    const data = await Project.findOne({
+        _id: projectId,
+        isArchived: false,
+        deletedAt: null
     });
-    if(!data){
+    
+    if (!data) {
         return 404;
     }
     return data;
 }
 
 async function getAllProjectService(workspaceId) {
-    const data= await Project.find({ workspaceId: workspaceId });
+    // Only return non-archived projects
+    const data = await Project.find({ 
+        workspaceId: workspaceId,
+        isArchived: false,
+        deletedAt: null 
+    });
 
     return data;
 }
@@ -93,5 +142,4 @@ module.exports = {
     deleteProjectService,
     getProjectServiceById,
     getAllProjectService
-}
-
+};

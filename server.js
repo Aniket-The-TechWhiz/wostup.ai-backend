@@ -3,8 +3,7 @@ require("dotenv").config();
 const { app, server, io } = require("./app"); // ✅ FIXED IMPORT
 const { connectToMongo } = require("./db/mongo");
 const { ensureMongoSchema } = require("./db/schemaSetup");
-const setupRedis = require("./redisConfig/config.js");
-
+const { setupRedis } = require("./redisConfig/config.js");
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
@@ -21,7 +20,7 @@ async function startServer() {
     require("./onlinePresence/workspacePresence.js")(io, pubClient);
     require("./sockets/notificationSocket.js")(io, pubClient);
     require("./sockets/updateSocket.js")(io, pubClient);
-    await require("./sockets/aiNotification.js")(io, pubClient);
+    await require("./workers/aiNotification.js")(io, pubClient);
     // ✅ START ONLY ONE SERVER
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

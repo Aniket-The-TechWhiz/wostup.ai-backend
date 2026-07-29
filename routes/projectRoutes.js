@@ -7,7 +7,8 @@ const {
   updateProjectController,
   deleteProjectController,
   getProjectController,
-  getProjectByIdController
+  getProjectByIdController,
+  projectStat
 } = require("../controllers/projectsController/project.Controller");
 
 // 🔹 Create Project
@@ -18,6 +19,9 @@ router.get("/v1/getProjects/:workspaceId", getProjectController);
 
 // 🔹 Get single project by ID
 router.get("/v1/getProjectById/:projectId", getProjectByIdController);
+
+// 🔹 Get project stats and workspace online member count
+router.get("/v1/projectStats/:workspaceId", projectStat);
 
 // 🔹 Update project
 router.put("/v1/updateProjectById/:projectId", authMiddleware, updateProjectController);
