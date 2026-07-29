@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
-const { AuthEmailVerificationToken, User } = require("../models");
+const { AuthEmailVerificationToken, User, UserProfile } = require("../models");
 const { enqueueVerificationEmail } = require("../queues/emailVerificationQueue");
 
 const TOKEN_TTL_MINUTES = Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60);
@@ -15,15 +15,21 @@ function createVerificationLink(token) {
   return `${VERIFY_URL_BASE}${separator}token=${encodeURIComponent(token)}`;
 }
 
+const mongoose = require("mongoose");
+
 async function createVerificationToken(userId) {
   const rawToken = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(rawToken);
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60 * 1000);
 
-  await AuthEmailVerificationToken.deleteMany({ userId });
+  const userObjId = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId)
+    : userId;
+
+  await AuthEmailVerificationToken.deleteMany({ userId: userObjId });
 
   await AuthEmailVerificationToken.create({
-    userId,
+    userId: userObjId,
     tokenHash,
     expiresAt,
     verifiedAt: null,
@@ -157,8 +163,13 @@ async function verifyEmailToken(token) {
     return { status: 400, body: { error: "Invalid or expired verification token" } };
   }
 
-  await User.updateOne(
-    { _id: tokenDoc.userId },
+  const UserModel = User || UserProfile;
+  const userObjId = mongoose.Types.ObjectId.isValid(tokenDoc.userId)
+    ? new mongoose.Types.ObjectId(tokenDoc.userId)
+    : tokenDoc.userId;
+
+  await UserModel.updateOne(
+    { _id: userObjId },
     { $set: { emailVerified: true } }
   );
 

@@ -12,6 +12,7 @@ function safeRequire(path, exportName) {
 }
 
 module.exports = {
+  User: require("./usersProfile.model"),
   UserProfile: require("./usersProfile.model"),
   AuthOtp: require("./authOtp.model"),
   
