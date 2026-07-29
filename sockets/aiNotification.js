@@ -7,6 +7,11 @@ module.exports = async (io, pubClient) => {
 	}
 
 	const subClient = pubClient.duplicate();
+
+	subClient.on("error", (err) => {
+		console.error("⚠️ AI Notification SubClient Error:", err.message);
+	});
+
 	await subClient.connect();
 
 	await subClient.subscribe("ai_notifications", async (message) => {

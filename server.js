@@ -22,6 +22,7 @@ async function startServer() {
     require("./sockets/notificationSocket.js")(io, pubClient);
     require("./sockets/updateSocket.js")(io, pubClient);
     await require("./sockets/aiNotification.js")(io, pubClient);
+    require("./workers/emailVerification.worker");
     // ✅ START ONLY ONE SERVER
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

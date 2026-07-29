@@ -1,9 +1,10 @@
 const crypto = require("crypto");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 const { AuthEmailVerificationToken, User } = require("../models");
+const { enqueueVerificationEmail } = require("../queues/emailVerificationQueue");
 
 const TOKEN_TTL_MINUTES = Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60);
-const VERIFY_URL_BASE = process.env.EMAIL_VERIFICATION_URL || "http://localhost:3000/verify-email";
+const VERIFY_URL_BASE = process.env.EMAIL_VERIFICATION_URL || "http://localhost:5000/api/auth/email-verification/verify";
 
 function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -31,8 +32,56 @@ async function createVerificationToken(userId) {
   return { rawToken, expiresAt };
 }
 
+async function queueVerificationEmail({ user, rawToken, expiresAt }) {
+  const verificationUrl = createVerificationLink(rawToken);
+
+  try {
+    await enqueueVerificationEmail({
+      userId: user.id,
+      toEmail: user.email,
+      toName: user.name,
+      verificationUrl,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return { queued: true, verificationUrl };
+  } catch (error) {
+    console.error("Failed to enqueue verification email job:", error.message);
+    return { queued: false, verificationUrl };
+  }
+}
+
+function buildVerificationEmailJobData(user, rawToken, expiresAt) {
+  return {
+    userId: user.id,
+    toEmail: user.email,
+    toName: user.name,
+    verificationUrl: createVerificationLink(rawToken),
+    expiresAt: expiresAt.toISOString(),
+  };
+}
+
+async function queueVerificationEmailJob(user, rawToken, expiresAt) {
+  const jobData = buildVerificationEmailJobData(user, rawToken, expiresAt);
+
+  try {
+    await enqueueVerificationEmail(jobData);
+
+    return {
+      queued: true,
+      jobData,
+    };
+  } catch (error) {
+    console.error("Failed to enqueue verification email job:", error.message);
+    return {
+      queued: false,
+      jobData,
+    };
+  }
+}
+
 function getBrevoClient() {
-  const apiKey = process.env.BREVO_API_KEY;
+  const apiKey = (process.env.BREVO_API_KEY || "").trim();
   if (!apiKey) {
     throw new Error("BREVO_API_KEY is not set");
   }
@@ -74,16 +123,20 @@ async function sendVerificationEmail({ toEmail, toName, verificationUrl, expires
   await apiInstance.sendTransacEmail(sendSmtpEmail);
 }
 
-async function  issueAndSendVerificationEmail(user) {
+async function issueAndQueueVerificationEmail(user) {
   const { rawToken, expiresAt } = await createVerificationToken(user.id);
-  const verificationUrl = createVerificationLink(rawToken);
+  const queued = await queueVerificationEmailJob(user, rawToken, expiresAt);
 
-  await sendVerificationEmail({
-    toEmail: user.email,
-    toName: user.name,
-    verificationUrl,
+  return {
+    rawToken,
     expiresAt,
-  });
+    verificationUrl: queued.jobData.verificationUrl,
+    queued: queued.queued,
+  };
+}
+
+async function issueAndSendVerificationEmail(user) {
+  return issueAndQueueVerificationEmail(user);
 }
 
 async function verifyEmailToken(token) {
@@ -118,6 +171,10 @@ async function verifyEmailToken(token) {
 }
 
 module.exports = {
+  issueAndQueueVerificationEmail,
   issueAndSendVerificationEmail,
+  buildVerificationEmailJobData,
+  queueVerificationEmailJob,
+  sendVerificationEmail,
   verifyEmailToken,
 };
