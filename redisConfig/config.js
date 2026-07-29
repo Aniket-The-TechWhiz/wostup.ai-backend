@@ -14,12 +14,20 @@ async function setupRedis(io) {
         const pubClient = createClient({
             url: redisUrl,
             socket: {
-                connectTimeout: 2000,  
-                reconnectStrategy: false  
+                connectTimeout: 5000,
+                reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
             }
         });
 
+        pubClient.on("error", (err) => {
+            console.error("⚠️ Redis PubClient Error:", err.message);
+        });
+
         const subClient = pubClient.duplicate();
+
+        subClient.on("error", (err) => {
+            console.error("⚠️ Redis SubClient Error:", err.message);
+        });
 
         // Add manual timeout wrapper
         const connectWithTimeout = Promise.race([
