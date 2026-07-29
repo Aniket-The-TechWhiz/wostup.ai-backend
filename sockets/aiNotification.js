@@ -5,8 +5,13 @@ module.exports = async (io, pubClient) => {
 		console.warn("AI notification subscriber skipped: pubClient not provided.");
 		return null;
 	}
-
+	
 	const subClient = pubClient.duplicate();
+
+	subClient.on("error", (err) => {
+		console.error("⚠️ AI Notification SubClient Error:", err.message);
+	});
+
 	await subClient.connect();
 
 	await subClient.subscribe("ai_notifications", async (message) => {

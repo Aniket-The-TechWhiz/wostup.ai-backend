@@ -5,7 +5,15 @@ async function createOrUpdateCollection(db, name, validator) {
   const exists = await db.listCollections({ name }, { nameOnly: true }).hasNext();
 
   if (!exists) {
-    await db.createCollection(name, { validator });
+    try {
+      await db.createCollection(name, { validator });
+    } catch (error) {
+      if (error && (error.code === 48 || error.codeName === "NamespaceExists")) {
+        return;
+      }
+
+      throw error;
+    }
     return;
   }
 
@@ -360,6 +368,31 @@ const validators = {
       },
     },
   },
+
+  failed_queue_jobs: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["jobId", "queueName", "jobName", "toEmail", "failedReason", "attemptsMade", "status"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        jobId: { bsonType: "string" },
+        queueName: { bsonType: "string" },
+        jobName: { bsonType: "string" },
+        userId: { bsonType: ["objectId", "null"] },
+        toEmail: { bsonType: "string" },
+        toName: { bsonType: "string" },
+        verificationUrl: { bsonType: "string" },
+        failedReason: { bsonType: "string" },
+        errorStack: { bsonType: "string" },
+        attemptsMade: { bsonType: ["int", "double"] },
+        status: { enum: ["failed", "retried", "resolved"] },
+        failedAt: { bsonType: "date" },
+        resolvedAt: { bsonType: ["date", "null"] },
+      }
+    }
+  }, // ✅ FIXED: Added missing closing braces for failed_queue_jobs schema
+  
+  // ✅ NEW: auth_otps collection validator
   auth_otps: {
     $jsonSchema: {
       bsonType: "object",
@@ -443,6 +476,17 @@ const indexes = {
   ],
   auth_password_reset_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
   auth_email_verification_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
+<<<<<<< HEAD
+=======
+  failed_queue_jobs: [
+    { key: { jobId: 1 } },
+    { key: { queueName: 1, status: 1 } },
+    { key: { toEmail: 1 } },
+    { key: { failedAt: -1 } },
+  ], // ✅ FIXED: Added missing closing bracket for failed_queue_jobs array
+
+  // ✅ NEW: auth_otps indexes
+>>>>>>> main
   auth_otps: [
     { key: { userId: 1, expiresAt: 1 } },
     { key: { otp: 1 } },

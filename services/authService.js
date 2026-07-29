@@ -44,25 +44,38 @@ async function register({ email, password, confirmPassword }) {
     const user = await createUser(email, name, password);
     const accessToken = generateAccessToken(user);
 
+    let verificationEmailQueued = true;
+    let verificationResult = null;
+
     let verificationEmailSent = true;
     try {
-      await issueAndSendVerificationEmail(user);
+      verificationResult = await issueAndQueueVerificationEmail(user);
+      verificationEmailQueued = Boolean(verificationResult.queued);
     } catch (_err) {
-      verificationEmailSent = false;
+      verificationEmailQueued = false;
+    }
+
+    const body = {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerified: user.emailVerified,
+      },
+      verificationEmailQueued,
+    };
+
+    const isDevMode = process.env.NODE_ENV === "dev" || process.env.NODE_ENV === "development";
+    if (isDevMode && verificationResult) {
+      body.verificationToken = verificationResult.rawToken;
+      body.verificationTokenExpiresAt = verificationResult.expiresAt;
+      body.verificationUrl = verificationResult.verificationUrl;
     }
 
     return {
       status: 201,
-      body: {
-        accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          emailVerified: user.emailVerified,
-        },
-        verificationEmailSent,
-      },
+      body,
     };
   } catch (error) {
     if (error.message === "User already exists") {
