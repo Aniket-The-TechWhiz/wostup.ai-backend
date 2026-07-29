@@ -475,18 +475,13 @@ const indexes = {
     { key: { userId: 1, expiresAt: 1 } },
   ],
   auth_password_reset_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
-  auth_email_verification_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
-<<<<<<< HEAD
-=======
+  auth_email_verification_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],  
   failed_queue_jobs: [
     { key: { jobId: 1 } },
     { key: { queueName: 1, status: 1 } },
     { key: { toEmail: 1 } },
     { key: { failedAt: -1 } },
-  ], // ✅ FIXED: Added missing closing bracket for failed_queue_jobs array
-
-  // ✅ NEW: auth_otps indexes
->>>>>>> main
+  ], 
   auth_otps: [
     { key: { userId: 1, expiresAt: 1 } },
     { key: { otp: 1 } },
