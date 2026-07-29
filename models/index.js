@@ -12,7 +12,9 @@ function safeRequire(path, exportName) {
 }
 
 module.exports = {
-  User: require("./users.model"),
+  UserProfile: require("./usersProfile.model"),
+  AuthOtp: require("./authOtp.model"),
+
   Workspace: require("./workspaces.model"),
   WorkspaceMember: require("./workspaceMembers.model"),
   Project: require("./projects.model"),
@@ -27,10 +29,12 @@ module.exports = {
   AiContextSnapshot: safeRequire("./ai_context_snapshots.model", "AiContextSnapshot"),
   AiExecutionLog: safeRequire("./ai_execution_logs.model", "AiExecutionLog"),
   AiRiskReport: safeRequire("./ai_risk_reports.model", "AiRiskReport"),
+
   AuthAccount: require("./authAccounts.model"),
   AuthSession: require("./authSessions.model"),
   AuthRefreshToken: require("./authRefreshTokens.model"),
   AuthPasswordResetToken: require("./authPasswordResetTokens.model"),
   AuthEmailVerificationToken: require("./authEmailVerificationTokens.model"),
   FailedQueueJob: require("./failedQueueJobs.model"),
+};
 };

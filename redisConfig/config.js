@@ -1,6 +1,7 @@
 const { createClient } = require("redis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
+let redisClient = null;
 async function setupRedis(io) {
     const redisUrl = process.env.REDIS_URL;
     
@@ -35,11 +36,12 @@ async function setupRedis(io) {
         ]);
 
         await connectWithTimeout;
-
+        redisClient = pubClient;
         io.adapter(createAdapter(pubClient, subClient));
         console.log("✅ Redis connected successfully");
 
         return { pubClient, subClient };
+
     } catch (err) {
         console.warn("⚠️  Redis connection failed. Running without Redis adapter. Some features may be limited.");
         console.warn("   Error:", err.message);
@@ -47,4 +49,10 @@ async function setupRedis(io) {
     }
 }
 
-module.exports = setupRedis;
+function getRedisClient() {
+    return redisClient;
+}
+module.exports = {
+    setupRedis,
+    getRedisClient
+};

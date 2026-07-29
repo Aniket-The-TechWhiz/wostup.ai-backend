@@ -1,5 +1,5 @@
-const { issueAndQueueVerificationEmail, verifyEmailToken } = require("../../services/emailVerificationService");
-const { getUserById } = require("../../services/userService");
+const { issueAndSendVerificationEmail, verifyEmailToken } = require("../../services/emailVerificationService");
+const { getUserById } = require("../../services/userProfileService");
 
 async function sendVerification(req, res) {
   try {

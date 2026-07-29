@@ -1,5 +1,5 @@
 const { verifyAccessToken, extractTokenFromHeader } = require("../utils/jwt");
-const { getUserById } = require("../services/userService");
+const { getUserById } = require("../services/userProfileService");
 
 async function authMiddleware(req, res, next) {
   try {
@@ -13,6 +13,7 @@ async function authMiddleware(req, res, next) {
     const user = await getUserById(payload.sub);
     if (!user) return res.status(401).json({ error: "User not found" });
 
+    // If token_version is used (uncomment in User model), verify it
     const userTokenVersion = typeof user.token_version === "number" ? user.token_version : 0;
     if ((payload.version || 0) !== userTokenVersion) {
       return res.status(401).json({ error: "Token has been revoked" });
