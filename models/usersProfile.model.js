@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
       type: [{ type: String, maxlength: 80 }],
       default: [],
     },
-    // emailVerified: { type: Boolean, required: true, default: false },
+    emailVerified: { type: Boolean, required: true, default: false },
     isActive: { type: Boolean, required: true, default: true },
     deletedAt: { type: Date, default: null },
 

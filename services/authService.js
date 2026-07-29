@@ -11,7 +11,7 @@ const {
   updateUser,
 } = require("./userProfileService");
 
-const { issueAndSendVerificationEmail } = require("./emailVerificationService");
+const { issueAndQueueVerificationEmail, issueAndSendVerificationEmail } = require("./emailVerificationService");
 const { createSessionAndRefreshToken } = require("../controllers/auth/authSessionRefresh.Controller");
 const { createOTP, verifyOTP } = require("./otpService");
 
@@ -51,7 +51,8 @@ async function register({ email, password, confirmPassword }) {
     try {
       verificationResult = await issueAndQueueVerificationEmail(user);
       verificationEmailQueued = Boolean(verificationResult.queued);
-    } catch (_err) {
+    } catch (err) {
+      console.error("Failed to issue/queue verification email:", err.message || err);
       verificationEmailQueued = false;
     }
 

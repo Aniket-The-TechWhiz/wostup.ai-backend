@@ -8,7 +8,8 @@ const { connectToMongo } = require("../db/mongo");
 const { ensureMongoSchema } = require("../db/schemaSetup");
 const { register } = require("../services/authService");
 const { verifyEmailToken } = require("../services/emailVerificationService");
-const { User, AuthEmailVerificationToken } = require("../models");
+const { User, UserProfile, AuthEmailVerificationToken } = require("../models");
+const UserModel = User || UserProfile;
 
 async function runTest() {
   console.log("---------------------------------------------------");
@@ -50,9 +51,9 @@ async function runTest() {
     console.log("✅ PASS: verificationUrl format:", verificationUrl);
 
     // 3. Verify user status before email verification
-    const dbUserBefore = await User.findById(user.id);
-    console.log("\n3. User emailVerified state in DB BEFORE token verification:", dbUserBefore.emailVerified);
-    if (dbUserBefore.emailVerified !== false) {
+    const dbUserBefore = await UserModel.findById(user.id);
+    console.log("\n3. User emailVerified state in DB BEFORE token verification:", Boolean(dbUserBefore.emailVerified));
+    if (Boolean(dbUserBefore.emailVerified) !== false) {
       throw new Error("❌ FAIL: User emailVerified should be false before verification.");
     }
     console.log("✅ PASS: User emailVerified is false as expected.");
@@ -69,9 +70,9 @@ async function runTest() {
     console.log("✅ PASS: Token verified successfully.");
 
     // 5. Verify user status AFTER email verification
-    const dbUserAfter = await User.findById(user.id);
-    console.log("\n5. User emailVerified state in DB AFTER token verification:", dbUserAfter.emailVerified);
-    if (dbUserAfter.emailVerified !== true) {
+    const dbUserAfter = await UserModel.findById(user.id);
+    console.log("\n5. User emailVerified state in DB AFTER token verification:", Boolean(dbUserAfter.emailVerified));
+    if (Boolean(dbUserAfter.emailVerified) !== true) {
       throw new Error("❌ FAIL: User emailVerified should be true after verification.");
     }
     console.log("✅ PASS: User emailVerified is now TRUE.");
@@ -95,7 +96,7 @@ async function runTest() {
 
     // 8. Cleanup test data
     console.log("\n7. Cleaning up test user from DB...");
-    await User.deleteOne({ _id: user.id });
+    await UserModel.deleteOne({ _id: user.id });
     console.log("✅ Cleanup complete.");
 
     console.log("---------------------------------------------------");
