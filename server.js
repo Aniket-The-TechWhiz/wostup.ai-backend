@@ -4,6 +4,7 @@ const { app, server, io } = require("./app"); // ✅ FIXED IMPORT
 const { connectToMongo } = require("./db/mongo");
 const { ensureMongoSchema } = require("./db/schemaSetup");
 const { setupRedis } = require("./redisConfig/config.js");
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {

@@ -1,5 +1,7 @@
 module.exports = {
-  User: require("./users.model"),
+  UserProfile: require("./usersProfile.model"),
+  AuthOtp: require("./authOtp.model"),
+
   Workspace: require("./workspaces.model"),
   WorkspaceMember: require("./workspaceMembers.model"),
   Project: require("./projects.model"),
@@ -8,12 +10,7 @@ module.exports = {
   Update: require("./updates.model"),
   Activity: require("./activities.model"),
   Notification: require("./notifications.model"),
-  AiSuggestion: require("./ai_suggestions.model"),
-  AiAction: require("./ai_actions.model"),
-  AiAnalysis: require("./ai_analysis.model"),
-  AiContextSnapshot: require("./ai_context_snapshots.model"),
-  AiExecutionLog: require("./ai_execution_logs.model"),
-  AiRiskReport: require("./ai_risk_reports.model"),
+
   AuthAccount: require("./authAccounts.model"),
   AuthSession: require("./authSessions.model"),
   AuthRefreshToken: require("./authRefreshTokens.model"),
