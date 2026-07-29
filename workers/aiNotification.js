@@ -1,5 +1,5 @@
 const { Worker } = require("bullmq");
-const redisConnection = require("../config/redisConfig"); // adjust path to match your project structure
+const redisConnection = require("../redisConfig/config"); // adjust path to match your project structure
 const { sendNotificationToRecipients } = require("../services/notificationDispatchService");
 
 /**

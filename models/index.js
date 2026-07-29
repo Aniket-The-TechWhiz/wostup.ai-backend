@@ -37,4 +37,4 @@ module.exports = {
   AuthEmailVerificationToken: require("./authEmailVerificationTokens.model"),
   FailedQueueJob: require("./failedQueueJobs.model"),
 };
-};
+

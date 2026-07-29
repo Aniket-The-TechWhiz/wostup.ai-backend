@@ -372,6 +372,10 @@ const validators = {
         status: { enum: ["failed", "retried", "resolved"] },
         failedAt: { bsonType: "date" },
         resolvedAt: { bsonType: ["date", "null"] },
+      }
+    }
+  }, // ✅ FIXED: Added missing closing braces for failed_queue_jobs schema
+  
   // ✅ NEW: auth_otps collection validator
   auth_otps: {
     $jsonSchema: {
@@ -430,6 +434,8 @@ const indexes = {
     { key: { queueName: 1, status: 1 } },
     { key: { toEmail: 1 } },
     { key: { failedAt: -1 } },
+  ], // ✅ FIXED: Added missing closing bracket for failed_queue_jobs array
+
   // ✅ NEW: auth_otps indexes
   auth_otps: [
     { key: { userId: 1, expiresAt: 1 } },

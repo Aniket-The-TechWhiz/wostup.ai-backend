@@ -8,7 +8,7 @@ const {
   deleteTaskController,
   getAllTaskController,
   getTaskByIdController,
-  filterTaskController,
+  // filterTaskController,
 } = require("../controllers/projectsController/tasks.Controller");
 
 // Create task
@@ -27,6 +27,6 @@ router.get("/v1/getAllTasks/:projectId", getAllTaskController);
 router.get("/v1/getTaskById/:taskId", getTaskByIdController);
 
 // Filter tasks
-router.get("/v1/filterTasks/:status/:userid", authMiddleware, filterTaskController);
+// router.get("/v1/filterTasks/:status/:userid", authMiddleware, filterTaskController);
 
 module.exports = router;

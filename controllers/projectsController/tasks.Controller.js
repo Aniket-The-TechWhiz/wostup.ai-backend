@@ -177,7 +177,7 @@ module.exports = {
     getTaskByIdController,
     getAllTaskController,
     deleteTaskController,
-    filterTaskController
+    // filterTaskController
 };
 
 
