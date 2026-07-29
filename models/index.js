@@ -1,6 +1,7 @@
 module.exports = {
   UserProfile: require("./usersProfile.model"),
   AuthOtp: require("./authOtp.model"),
+  
 
   Workspace: require("./workspaces.model"),
   WorkspaceMember: require("./workspaceMembers.model"),
@@ -16,4 +17,5 @@ module.exports = {
   AuthRefreshToken: require("./authRefreshTokens.model"),
   AuthPasswordResetToken: require("./authPasswordResetTokens.model"),
   AuthEmailVerificationToken: require("./authEmailVerificationTokens.model"),
+  SecurityLog: require("./securityLogs.model"),
 };

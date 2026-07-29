@@ -1,7 +1,3 @@
-
-
-
-
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { AuthRefreshToken } = require("../models");

@@ -10,12 +10,12 @@ const {
   getUserById,
   updateUser,
 } = require("./userProfileService");
-
 const { issueAndSendVerificationEmail } = require("./emailVerificationService");
 const { createSessionAndRefreshToken } = require("../controllers/auth/authSessionRefresh.Controller");
 const { createOTP, verifyOTP } = require("./otpService");
+const { parseDevice } = require("./deviceParser"); // new
 
-// REGISTER (unchanged)
+// register
 async function register({ email, password, confirmPassword }) {
   if (!email || !password || !confirmPassword) {
     return {
@@ -78,7 +78,7 @@ async function register({ email, password, confirmPassword }) {
   }
 }
 
-// LOGIN with 2FA support
+// LOGIN with 2FA support (modified to pass device info)
 async function login({ email, password }, req) {
   if (!email || !password) {
     return {
@@ -87,7 +87,6 @@ async function login({ email, password }, req) {
     };
   }
 
-  // Get user + hashed password (from AuthAccount)
   const user = await getUserByEmail(email);
   if (!user) {
     return {
@@ -96,7 +95,6 @@ async function login({ email, password }, req) {
     };
   }
 
-  // Compare password
   const isPasswordValid = await comparePassword(password, user.password);
   if (!isPasswordValid) {
     return {
@@ -105,7 +103,6 @@ async function login({ email, password }, req) {
     };
   }
 
-  // Get full user (role + token_version + twoFactorEnabled)
   const fullUser = await getUserById(user.id);
   if (!fullUser) {
     return {
@@ -116,9 +113,8 @@ async function login({ email, password }, req) {
 
   // --- 2FA CHECK ---
   if (fullUser.twoFactorEnabled) {
-    // Generate and send OTP
     try {
-      await createOTP(fullUser); // creates OTP and sends email
+      await createOTP(fullUser);
     } catch (otpErr) {
       console.error("Failed to send OTP:", otpErr);
       return {
@@ -126,8 +122,6 @@ async function login({ email, password }, req) {
         body: { error: "Failed to send OTP. Please try again." },
       };
     }
-
-    // Return temporary token (valid 5 min)
     const tempToken = generateTemporaryToken(fullUser.id);
     return {
       status: 200,
@@ -139,13 +133,14 @@ async function login({ email, password }, req) {
     };
   }
 
-  // --- NO 2FA: proceed as usual ---
-  const accessToken = generateAccessToken(fullUser);
-  const { refreshToken } = await createSessionAndRefreshToken(
+  // --- NO 2FA: create session with device details ---
+  const deviceInfo = parseDevice(req);
+  const { refreshToken, sessionId } = await createSessionAndRefreshToken(
     fullUser.id,
-    req?.ip,
-    req?.headers?.["user-agent"]
+    deviceInfo
   );
+
+  const accessToken = generateAccessToken(fullUser, sessionId);
 
   return {
     status: 200,
@@ -163,7 +158,7 @@ async function login({ email, password }, req) {
   };
 }
 
-// 🔥 NEW: Verify OTP and issue final tokens
+// OTP verification (modified to pass device info)
 async function verifyOtp({ tempToken, otp }, req) {
   if (!tempToken || !otp) {
     return {
@@ -172,7 +167,6 @@ async function verifyOtp({ tempToken, otp }, req) {
     };
   }
 
-  // Validate temp token
   const decoded = verifyTemporaryToken(tempToken);
   if (!decoded) {
     return {
@@ -190,7 +184,6 @@ async function verifyOtp({ tempToken, otp }, req) {
     };
   }
 
-  // Verify OTP
   const isValid = await verifyOTP(userId, otp);
   if (!isValid) {
     return {
@@ -199,13 +192,14 @@ async function verifyOtp({ tempToken, otp }, req) {
     };
   }
 
-  // OTP is valid – issue access and refresh tokens
-  const accessToken = generateAccessToken(user);
-  const { refreshToken } = await createSessionAndRefreshToken(
+  // Create session with device details
+  const deviceInfo = parseDevice(req);
+  const { refreshToken, sessionId } = await createSessionAndRefreshToken(
     user.id,
-    req?.ip,
-    req?.headers?.["user-agent"]
+    deviceInfo
   );
+
+  const accessToken = generateAccessToken(user, sessionId);
 
   return {
     status: 200,
@@ -257,5 +251,5 @@ module.exports = {
   register,
   login,
   me,
-  verifyOtp, // export new function
+  verifyOtp,
 };

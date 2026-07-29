@@ -61,7 +61,7 @@ const validators = {
             maxLength: 80
           }
         },
-        twoFactorEnabled: { bsonType: "bool" }, // ✅ NEW
+        twoFactorEnabled: { bsonType: "bool" },
         isActive: { bsonType: "bool" },
         createdAt: { bsonType: "date" },
         updatedAt: { bsonType: "date" },
@@ -298,6 +298,21 @@ const validators = {
         expiresAt: { bsonType: "date" },
         revokedAt: { bsonType: ["date", "null"] },
         createdAt: { bsonType: "date" },
+        // NEW: device details fields (added for session management)
+        browser: { bsonType: ["string", "null"] },
+        browserVersion: { bsonType: ["string", "null"] },
+        os: { bsonType: ["string", "null"] },
+        osVersion: { bsonType: ["string", "null"] },
+        deviceType: { enum: ["desktop", "mobile", "tablet", "unknown"] },
+        clientFingerprint: { bsonType: ["string", "null"] },
+        metadata: {
+          bsonType: "object",
+          properties: {
+            screenResolution: { bsonType: ["string", "null"] },
+            timezone: { bsonType: ["string", "null"] },
+          },
+        },
+        lastActiveAt: { bsonType: ["date", "null"] },
       },
     },
   },
@@ -345,7 +360,6 @@ const validators = {
       },
     },
   },
-  // ✅ NEW: auth_otps collection validator
   auth_otps: {
     $jsonSchema: {
       bsonType: "object",
@@ -358,6 +372,36 @@ const validators = {
         verified: { bsonType: "bool" },
         createdAt: { bsonType: "date" },
         updatedAt: { bsonType: "date" },
+      },
+    },
+  },
+
+  // ✅ NEW: security_logs collection validator
+  security_logs: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "eventType", "createdAt"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        userId: { bsonType: "objectId" },
+        sessionId: { bsonType: ["objectId", "null"] },
+        eventType: {
+          enum: [
+            "LOGIN_SUCCESS",
+            "LOGIN_FAILED",
+            "LOGOUT",
+            "SESSION_REVOKED",
+            "SESSION_REVOKED_OTHERS",
+            "PASSWORD_RESET",
+            "EMAIL_VERIFIED",
+            "2FA_ENABLED",
+            "2FA_DISABLED",
+          ]
+        },
+        deviceSummary: { bsonType: ["string", "null"], maxLength: 255 },
+        ipAddress: { bsonType: ["string", "null"], maxLength: 64 },
+        details: { bsonType: ["object", "null"] },
+        createdAt: { bsonType: "date" },
       },
     },
   },
@@ -391,6 +435,7 @@ const indexes = {
   auth_sessions: [
     { key: { sessionToken: 1 }, options: { unique: true } },
     { key: { userId: 1, expiresAt: 1 } },
+    { key: { userId: 1, revokedAt: 1 } }, // for listing active sessions
   ],
   auth_refresh_tokens: [
     { key: { tokenHash: 1 }, options: { unique: true } },
@@ -398,11 +443,16 @@ const indexes = {
   ],
   auth_password_reset_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
   auth_email_verification_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
-  // ✅ NEW: auth_otps indexes
   auth_otps: [
     { key: { userId: 1, expiresAt: 1 } },
     { key: { otp: 1 } },
     { key: { expiresAt: 1 } },
+  ],
+
+  // ✅ NEW: security_logs indexes
+  security_logs: [
+    { key: { userId: 1, createdAt: -1 } },
+    { key: { eventType: 1 } },
   ],
 };
 
