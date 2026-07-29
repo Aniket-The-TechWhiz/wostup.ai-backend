@@ -10,14 +10,12 @@ const {
   getUserById,
   updateUser,
 } = require("./userProfileService");
-const { issueAndSendVerificationEmail } = require("./emailVerificationService");
-
-const { issueAndQueueVerificationEmail, issueAndSendVerificationEmail } = require("./emailVerificationService");
+const { issueAndQueueVerificationEmail } = require("./emailVerificationService");
 const { createSessionAndRefreshToken } = require("../controllers/auth/authSessionRefresh.Controller");
 const { createOTP, verifyOTP } = require("./otpService");
-const { parseDevice } = require("./deviceParser"); // new
+const { parseDevice } = require("./deviceParser");
 
-// register
+// REGISTER (with email queue & DEV token exposure)
 async function register({ email, password, confirmPassword }) {
   if (!email || !password || !confirmPassword) {
     return {
@@ -49,7 +47,6 @@ async function register({ email, password, confirmPassword }) {
     let verificationEmailQueued = true;
     let verificationResult = null;
 
-    let verificationEmailSent = true;
     try {
       verificationResult = await issueAndQueueVerificationEmail(user);
       verificationEmailQueued = Boolean(verificationResult.queued);
@@ -69,6 +66,7 @@ async function register({ email, password, confirmPassword }) {
       verificationEmailQueued,
     };
 
+    // In development mode, return the verification token for testing
     const isDevMode = process.env.NODE_ENV === "dev" || process.env.NODE_ENV === "development";
     if (isDevMode && verificationResult) {
       body.verificationToken = verificationResult.rawToken;
@@ -94,7 +92,7 @@ async function register({ email, password, confirmPassword }) {
   }
 }
 
-// LOGIN with 2FA support (modified to pass device info)
+// LOGIN (with 2FA and device capture)
 async function login({ email, password }, req) {
   if (!email || !password) {
     return {
@@ -174,7 +172,7 @@ async function login({ email, password }, req) {
   };
 }
 
-// OTP verification (modified to pass device info)
+// OTP VERIFICATION (with device capture)
 async function verifyOtp({ tempToken, otp }, req) {
   if (!tempToken || !otp) {
     return {
@@ -233,7 +231,7 @@ async function verifyOtp({ tempToken, otp }, req) {
   };
 }
 
-// ME (unchanged)
+// GET CURRENT USER
 async function me(auth) {
   const userId = auth && (auth.userId || auth.id);
   if (!userId) {
