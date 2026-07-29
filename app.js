@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const http = require("http"); // ✅ ADD THIS
+const http = require("http");
 const { Server } = require("socket.io");
 
 const authRoutes = require("./routes/authRoutes");
@@ -15,20 +15,14 @@ const workspaceRoutes = require("./routes/workspaceRoutes");
 const projectHealthRoutes = require("./routes/projectHealthRoutes");
 const teamLoadRoutes = require("./routes/teamLoadRoutes");
 const userProfileRoutes = require("./routes/userProfileRoutes");
-
+const sessionsRoutes = require("./routes/sessions"); // ✅ already required
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// CREATE SERVER HERE
 const server = http.createServer(app);
-
-// NOW PASS IT
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
 // routes
 app.use("/", healthRoutes);
@@ -41,11 +35,9 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/task-health", taskHealthRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-// Notifications are handled via WebSockets now; HTTP routes removed.
 app.use("/api/projectHealth", projectHealthRoutes);
 app.use("/api/team-load", teamLoadRoutes);
-// app.use("/api/ai-suggestions", aiSuggestionRoutes);
-// app.use("/api/ai-actions", aiActionRoutes);
+app.use("/api/sessions", sessionsRoutes); // ✅ use the variable
 
 // error handler
 app.use((err, _req, res, _next) => {
@@ -53,5 +45,4 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-// EXPORT 
 module.exports = { app, server, io };
