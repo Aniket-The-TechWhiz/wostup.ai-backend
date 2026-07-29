@@ -1,17 +1,45 @@
 const AuthPasswordResetToken = require("../../models/authPasswordResetTokens.model");
 const AuthAccount = require("../../models/authAccounts.model");
 const async_handler = require("express-async-handler");
-const { getUserByEmail, hashPassword } = require("../../services/userService");
+const { getUserByEmail, hashPassword } = require("../../services/userProfileService");
 const { issueAndSendPasswordRestEmail, verifyPasswordResetToken } = require("../../services/passwordResetService");
 
 // 1. Send password reset email
 const sendPasswordRestTokenEmail = async_handler(async (req, res) => {
-    const email = req.body.email || req.body;
-    if (!email) return res.status(400).send("email not provided!!!");
+
+    const email = req.body?.email;
+
+    if (!email) {
+        return res.status(400).json({
+            error: "Email not provided"
+        });
+    }
+
     const user = await getUserByEmail(email);
-    if (!user) return res.status(404).send("User not found!!!");
-    await issueAndSendPasswordRestEmail(user);
-    res.status(200).json({ message: "password reset email sent" });
+
+    // Prevent email enumeration
+    if (!user) {
+        return res.status(200).json({
+            message: "Password reset email sent"
+        });
+    }
+
+    const existingToken = await AuthPasswordResetToken.findOne({
+        userId: user.id,
+        usedAt: null,
+        expiresAt: { $gt: new Date() }
+    });
+
+    // Send only if there isn't already a valid token
+    if (!existingToken) {
+        // console.log("Password reset email would be sent here");
+        await issueAndSendPasswordRestEmail(user);
+    }
+
+    return res.status(200).json({
+        message: "Password reset email sent"
+    });
+
 });
 
 // 2. Verify password reset token (GET or POST)

@@ -1,23 +1,21 @@
-
-
-
-
-const { generateAccessToken } = require("../utils/jwt");
+const {
+  generateAccessToken,
+  generateTemporaryToken,
+  verifyTemporaryToken,
+} = require("../utils/jwt");
 const {
   comparePassword,
   createUser,
   getUserByEmail,
   getUserById,
-} = require("./userService");
+  updateUser,
+} = require("./userProfileService");
 
 const { issueAndSendVerificationEmail } = require("./emailVerificationService");
+const { createSessionAndRefreshToken } = require("../controllers/auth/authSessionRefresh.Controller");
+const { createOTP, verifyOTP } = require("./otpService");
 
-const {
-  createSessionAndRefreshToken,
-} = require("../controllers/auth/authSessionRefresh.Controller");
-
-// REGISTER
-
+// REGISTER (unchanged)
 async function register({ email, password, confirmPassword }) {
   if (!email || !password || !confirmPassword) {
     return {
@@ -47,7 +45,6 @@ async function register({ email, password, confirmPassword }) {
     const accessToken = generateAccessToken(user);
 
     let verificationEmailSent = true;
-
     try {
       await issueAndSendVerificationEmail(user);
     } catch (_err) {
@@ -74,7 +71,6 @@ async function register({ email, password, confirmPassword }) {
         body: { error: "Email already registered" },
       };
     }
-
     return {
       status: 500,
       body: { error: "Registration failed" },
@@ -82,7 +78,7 @@ async function register({ email, password, confirmPassword }) {
   }
 }
 
-
+// LOGIN with 2FA support
 async function login({ email, password }, req) {
   if (!email || !password) {
     return {
@@ -93,7 +89,6 @@ async function login({ email, password }, req) {
 
   // Get user + hashed password (from AuthAccount)
   const user = await getUserByEmail(email);
-
   if (!user) {
     return {
       status: 401,
@@ -103,7 +98,6 @@ async function login({ email, password }, req) {
 
   // Compare password
   const isPasswordValid = await comparePassword(password, user.password);
-
   if (!isPasswordValid) {
     return {
       status: 401,
@@ -111,9 +105,8 @@ async function login({ email, password }, req) {
     };
   }
 
-  // Get full user (role + token_version)
+  // Get full user (role + token_version + twoFactorEnabled)
   const fullUser = await getUserById(user.id);
-
   if (!fullUser) {
     return {
       status: 404,
@@ -121,10 +114,33 @@ async function login({ email, password }, req) {
     };
   }
 
-  // Generate access token
-  const accessToken = generateAccessToken(fullUser);
+  // --- 2FA CHECK ---
+  if (fullUser.twoFactorEnabled) {
+    // Generate and send OTP
+    try {
+      await createOTP(fullUser); // creates OTP and sends email
+    } catch (otpErr) {
+      console.error("Failed to send OTP:", otpErr);
+      return {
+        status: 500,
+        body: { error: "Failed to send OTP. Please try again." },
+      };
+    }
 
-  // Create session + refresh token
+    // Return temporary token (valid 5 min)
+    const tempToken = generateTemporaryToken(fullUser.id);
+    return {
+      status: 200,
+      body: {
+        requiresOtp: true,
+        tempToken,
+        message: "OTP sent to your email. Please verify.",
+      },
+    };
+  }
+
+  // --- NO 2FA: proceed as usual ---
+  const accessToken = generateAccessToken(fullUser);
   const { refreshToken } = await createSessionAndRefreshToken(
     fullUser.id,
     req?.ip,
@@ -141,15 +157,75 @@ async function login({ email, password }, req) {
         email: fullUser.email,
         name: fullUser.name,
         emailVerified: fullUser.emailVerified,
+        twoFactorEnabled: fullUser.twoFactorEnabled,
       },
     },
   };
 }
 
+// 🔥 NEW: Verify OTP and issue final tokens
+async function verifyOtp({ tempToken, otp }, req) {
+  if (!tempToken || !otp) {
+    return {
+      status: 400,
+      body: { error: "tempToken and otp are required" },
+    };
+  }
 
+  // Validate temp token
+  const decoded = verifyTemporaryToken(tempToken);
+  if (!decoded) {
+    return {
+      status: 401,
+      body: { error: "Invalid or expired temporary token" },
+    };
+  }
+
+  const userId = decoded.sub;
+  const user = await getUserById(userId);
+  if (!user) {
+    return {
+      status: 404,
+      body: { error: "User not found" },
+    };
+  }
+
+  // Verify OTP
+  const isValid = await verifyOTP(userId, otp);
+  if (!isValid) {
+    return {
+      status: 401,
+      body: { error: "Invalid or expired OTP" },
+    };
+  }
+
+  // OTP is valid – issue access and refresh tokens
+  const accessToken = generateAccessToken(user);
+  const { refreshToken } = await createSessionAndRefreshToken(
+    user.id,
+    req?.ip,
+    req?.headers?.["user-agent"]
+  );
+
+  return {
+    status: 200,
+    body: {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerified: user.emailVerified,
+        twoFactorEnabled: user.twoFactorEnabled,
+      },
+    },
+  };
+}
+
+// ME (unchanged)
 async function me(auth) {
   const userId = auth && (auth.userId || auth.id);
-
   if (!userId) {
     return {
       status: 401,
@@ -158,7 +234,6 @@ async function me(auth) {
   }
 
   const user = await getUserById(userId);
-
   if (!user) {
     return {
       status: 404,
@@ -173,6 +248,7 @@ async function me(auth) {
       email: user.email,
       name: user.name,
       emailVerified: user.emailVerified,
+      twoFactorEnabled: user.twoFactorEnabled,
     },
   };
 }
@@ -181,4 +257,5 @@ module.exports = {
   register,
   login,
   me,
+  verifyOtp, // export new function
 };

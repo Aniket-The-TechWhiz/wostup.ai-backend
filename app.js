@@ -14,6 +14,7 @@ const commentRoutes = require("./routes/commentRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
 const projectHealthRoutes = require("./routes/projectHealthRoutes");
 const teamLoadRoutes = require("./routes/teamLoadRoutes");
+const userProfileRoutes = require("./routes/userProfileRoutes");
 
 
 const app = express();
@@ -33,6 +34,7 @@ const io = new Server(server, {
 app.use("/", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/teamMember", teamRoutes);
+app.use("/api/user-profile", userProfileRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/milestones", milestoneRoutes);
 app.use("/api/tasks", taskRoutes);

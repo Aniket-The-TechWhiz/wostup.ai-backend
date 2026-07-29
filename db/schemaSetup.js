@@ -38,19 +38,31 @@ const validators = {
   users: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["name", "email", "avatar", "isActive", "emailVerified", "createdAt", "updatedAt"],
+      required: [
+        "name",
+        "email",
+        "avatar",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
       properties: {
         _id: { bsonType: "objectId" },
         name: { bsonType: "string", minLength: 1, maxLength: 120 },
         email: { bsonType: "string", minLength: 3, maxLength: 320 },
+        shortbio: { bsonType: "string", maxLength: 200 },
         avatar: { bsonType: "string", minLength: 1, maxLength: 8 },
+        role: { enum: ["user", "admin"] },
         roleTitle: { bsonType: "string", maxLength: 120 },
         skills: {
           bsonType: "array",
-          items: { bsonType: "string", maxLength: 80 },
+          items: {
+            bsonType: "string",
+            maxLength: 80
+          }
         },
+        twoFactorEnabled: { bsonType: "bool" }, // ✅ NEW
         isActive: { bsonType: "bool" },
-        emailVerified: { bsonType: "bool" },
         createdAt: { bsonType: "date" },
         updatedAt: { bsonType: "date" },
         deletedAt: { bsonType: ["date", "null"] },
@@ -333,6 +345,22 @@ const validators = {
       },
     },
   },
+  // ✅ NEW: auth_otps collection validator
+  auth_otps: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "otp", "expiresAt", "createdAt", "updatedAt"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        userId: { bsonType: "objectId" },
+        otp: { bsonType: "string", minLength: 1, maxLength: 10 },
+        expiresAt: { bsonType: "date" },
+        verified: { bsonType: "bool" },
+        createdAt: { bsonType: "date" },
+        updatedAt: { bsonType: "date" },
+      },
+    },
+  },
 };
 
 const indexes = {
@@ -370,6 +398,12 @@ const indexes = {
   ],
   auth_password_reset_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
   auth_email_verification_tokens: [{ key: { tokenHash: 1 }, options: { unique: true } }],
+  // ✅ NEW: auth_otps indexes
+  auth_otps: [
+    { key: { userId: 1, expiresAt: 1 } },
+    { key: { otp: 1 } },
+    { key: { expiresAt: 1 } },
+  ],
 };
 
 async function ensureMongoSchema() {
