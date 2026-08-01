@@ -39,5 +39,6 @@ module.exports = {
   AuthEmailVerificationToken: require("./authEmailVerificationTokens.model"),
   SecurityLog: require("./securityLogs.model"),
   FailedQueueJob: require("./failedQueueJobs.model"),
+  Suggestion: require("./suggestions.model"),
 };
 

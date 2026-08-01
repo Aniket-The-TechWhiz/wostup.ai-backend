@@ -8,6 +8,7 @@ const {
     taskFilterService,
     createTaskMadeByAI
 } = require("../../services/taskService");
+const conflictDetectorService = require("../../services/conflictDetector.service");
 
 
 const createTaskController = async_handler(async (req, res) => {
@@ -35,6 +36,11 @@ const createTaskController = async_handler(async (req, res) => {
 
 
     if (statuscode == 201) {
+        // Trigger debounced conflict detection asynchronously
+        const wsId = data?.workspaceId || workspaceId;
+        if (wsId) {
+            conflictDetectorService.scheduleDebouncedConflictCheck(wsId);
+        }
         return res.status(201).json({ message: "task created", data: data });
     }
 
@@ -57,6 +63,11 @@ const updateTaskController = async_handler(async (req, res) => {
     );
 
     if (statuscode == 200) {
+        // Trigger debounced conflict detection asynchronously
+        const wsId = data?.workspaceId || req.body?.workspaceId;
+        if (wsId) {
+            conflictDetectorService.scheduleDebouncedConflictCheck(wsId);
+        }
         return res.status(200).json({ message: "task updated", data: data });
     }
 

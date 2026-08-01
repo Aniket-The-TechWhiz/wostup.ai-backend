@@ -16,6 +16,7 @@ const projectHealthRoutes = require("./routes/projectHealthRoutes");
 const teamLoadRoutes = require("./routes/teamLoadRoutes");
 const userProfileRoutes = require("./routes/userProfileRoutes");
 const sessionsRoutes = require("./routes/sessions"); // ✅ already required
+const conflictDetectorRoutes = require("./routes/conflictDetectorRoutes");
 
 const app = express();
 app.use(cors());
@@ -38,6 +39,7 @@ app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/projectHealth", projectHealthRoutes);
 app.use("/api/team-load", teamLoadRoutes);
 app.use("/api/sessions", sessionsRoutes); // ✅ use the variable
+app.use("/api/conflicts", conflictDetectorRoutes);
 
 // error handler
 app.use((err, _req, res, _next) => {
