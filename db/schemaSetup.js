@@ -438,6 +438,41 @@ const validators = {
       },
     },
   },
+  // ✅ NEW: suggestions collection validator (Conflict Detector Module 03)
+  suggestions: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["workspaceId", "risk_category", "risk_score", "confidence", "scope"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        workspaceId: { bsonType: "objectId" },
+        risk_category: {
+          enum: [
+            "Cross-Project Conflict",
+            "Dependency Conflict",
+            "Milestone Mismatch",
+            "Due-Date Clustering",
+          ],
+        },
+        risk_score: { bsonType: ["int", "double"] },
+        confidence: { bsonType: ["int", "double"] },
+        scope: {
+          bsonType: "object",
+          required: ["type", "id"],
+          properties: {
+            type: { enum: ["person", "task", "project"] },
+            id: { bsonType: "objectId" },
+          },
+        },
+        details: { bsonType: ["object", "null"] },
+        phrased_text: { bsonType: ["string", "null"] },
+        validated: { bsonType: "bool" },
+        model_version: { bsonType: "string" },
+        createdAt: { bsonType: "date" },
+        updatedAt: { bsonType: "date" },
+      },
+    },
+  },
 };
 
 const indexes = {
@@ -492,6 +527,13 @@ const indexes = {
   security_logs: [
     { key: { userId: 1, createdAt: -1 } },
     { key: { eventType: 1 } },
+  ],
+  suggestions: [
+    {
+      key: { workspaceId: 1, risk_category: 1, "scope.type": 1, "scope.id": 1 },
+      options: { unique: true },
+    },
+    { key: { workspaceId: 1, risk_category: 1, createdAt: -1 } },
   ],
 };
 
