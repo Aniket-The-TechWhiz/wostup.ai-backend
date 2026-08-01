@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const conflictDetectorService = require("../../services/conflictDetector.service");
 
 /**
@@ -7,8 +8,11 @@ const conflictDetectorService = require("../../services/conflictDetector.service
 async function runConflictChecksHandler(req, res) {
   try {
     const { workspaceId } = req.params;
-    if (!workspaceId) {
-      return res.status(400).json({ error: "workspaceId is required" });
+    if (!workspaceId || !mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid workspaceId format",
+      });
     }
 
     const result = await conflictDetectorService.runAllConflictChecks(workspaceId);
@@ -16,7 +20,8 @@ async function runConflictChecksHandler(req, res) {
   } catch (error) {
     console.error("Error running conflict checks:", error);
     return res.status(500).json({
-      error: error.message || "Failed to run conflict detection analysis",
+      success: false,
+      message: error.message || "Failed to run conflict detection analysis",
     });
   }
 }
@@ -30,8 +35,11 @@ async function getSuggestionsHandler(req, res) {
     const { workspaceId } = req.params;
     const { risk_category, validated } = req.query;
 
-    if (!workspaceId) {
-      return res.status(400).json({ error: "workspaceId is required" });
+    if (!workspaceId || !mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid workspaceId format",
+      });
     }
 
     const suggestions = await conflictDetectorService.getWorkspaceSuggestions(
@@ -40,6 +48,7 @@ async function getSuggestionsHandler(req, res) {
     );
 
     return res.status(200).json({
+      success: true,
       workspaceId,
       count: suggestions.length,
       suggestions,
@@ -47,7 +56,8 @@ async function getSuggestionsHandler(req, res) {
   } catch (error) {
     console.error("Error fetching suggestions:", error);
     return res.status(500).json({
-      error: error.message || "Failed to fetch conflict suggestions",
+      success: false,
+      message: error.message || "Failed to fetch conflict suggestions",
     });
   }
 }
@@ -59,23 +69,31 @@ async function getSuggestionsHandler(req, res) {
 async function validateSuggestionHandler(req, res) {
   try {
     const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: "suggestion id is required" });
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid suggestion id format",
+      });
     }
 
     const updated = await conflictDetectorService.validateSuggestion(id);
     if (!updated) {
-      return res.status(404).json({ error: "Suggestion not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Suggestion not found",
+      });
     }
 
     return res.status(200).json({
+      success: true,
       message: "Suggestion validated successfully",
       suggestion: updated,
     });
   } catch (error) {
     console.error("Error validating suggestion:", error);
     return res.status(500).json({
-      error: error.message || "Failed to validate suggestion",
+      success: false,
+      message: error.message || "Failed to validate suggestion",
     });
   }
 }

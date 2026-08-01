@@ -36,11 +36,10 @@ const createTaskController = async_handler(async (req, res) => {
 
 
     if (statuscode == 201) {
-        // Trigger conflict detection asynchronously
-        if (workspaceId) {
-            conflictDetectorService.runAllConflictChecks(workspaceId).catch((err) => {
-                console.error("Async conflict detection error on task create:", err);
-            });
+        // Trigger debounced conflict detection asynchronously
+        const wsId = data?.workspaceId || workspaceId;
+        if (wsId) {
+            conflictDetectorService.scheduleDebouncedConflictCheck(wsId);
         }
         return res.status(201).json({ message: "task created", data: data });
     }
@@ -64,12 +63,10 @@ const updateTaskController = async_handler(async (req, res) => {
     );
 
     if (statuscode == 200) {
-        // Trigger conflict detection asynchronously
+        // Trigger debounced conflict detection asynchronously
         const wsId = data?.workspaceId || req.body?.workspaceId;
         if (wsId) {
-            conflictDetectorService.runAllConflictChecks(wsId).catch((err) => {
-                console.error("Async conflict detection error on task update:", err);
-            });
+            conflictDetectorService.scheduleDebouncedConflictCheck(wsId);
         }
         return res.status(200).json({ message: "task updated", data: data });
     }

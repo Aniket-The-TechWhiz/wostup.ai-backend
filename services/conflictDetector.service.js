@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-const { Task, Milestone, Suggestion } = require("../models");
+const { Task, Suggestion } = require("../models");
+
+// Active debouncing timers map for workspace triggers
+const activeDebounceTimers = new Map();
 
 /**
  * Helper to upsert a suggestion into the suggestions collection.
@@ -43,7 +46,7 @@ async function upsertSuggestion({
 
   return Suggestion.findOneAndUpdate(filter, update, {
     upsert: true,
-    new: true,
+    returnDocument: "after",
     runValidators: true,
   });
 }
@@ -159,6 +162,7 @@ async function detectCrossProjectConflicts(workspaceId) {
 /**
  * 2. Dependency / Sequence Conflict (Timeline Discrepancy)
  * Detects child tasks where parentTask.dueDate >= childTask.dueDate and parent task is not done.
+ * Hardened with pipeline $lookup to enforce workspaceId matching and deletedAt/status filters.
  */
 async function detectDependencyConflicts(workspaceId) {
   if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
@@ -182,8 +186,21 @@ async function detectDependencyConflicts(workspaceId) {
     {
       $lookup: {
         from: "tasks",
-        localField: "dependency",
-        foreignField: "_id",
+        let: { childDependency: "$dependency", wsId: "$workspaceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$_id", "$$childDependency"] },
+                  { $eq: ["$workspaceId", "$$wsId"] },
+                  { $eq: ["$deletedAt", null] },
+                  { $ne: ["$status", "done"] },
+                ],
+              },
+            },
+          },
+        ],
         as: "parentTask",
       },
     },
@@ -192,8 +209,6 @@ async function detectDependencyConflicts(workspaceId) {
     },
     {
       $match: {
-        "parentTask.deletedAt": null,
-        "parentTask.status": { $ne: "done" },
         $expr: { $gte: ["$parentTask.dueDate", "$dueDate"] },
       },
     },
@@ -240,6 +255,7 @@ async function detectDependencyConflicts(workspaceId) {
 /**
  * 3. Milestone Deadline Mismatch Conflict
  * Detects tasks belonging to a milestone where task.dueDate > milestone.dueDate.
+ * Hardened with pipeline $lookup to enforce workspaceId matching and deletedAt filters.
  */
 async function detectMilestoneMismatches(workspaceId) {
   if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
@@ -260,8 +276,20 @@ async function detectMilestoneMismatches(workspaceId) {
     {
       $lookup: {
         from: "milestones",
-        localField: "milestoneId",
-        foreignField: "_id",
+        let: { taskMilestoneId: "$milestoneId", wsId: "$workspaceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$_id", "$$taskMilestoneId"] },
+                  { $eq: ["$workspaceId", "$$wsId"] },
+                  { $eq: ["$deletedAt", null] },
+                ],
+              },
+            },
+          },
+        ],
         as: "milestone",
       },
     },
@@ -270,7 +298,6 @@ async function detectMilestoneMismatches(workspaceId) {
     },
     {
       $match: {
-        "milestone.deletedAt": null,
         $expr: { $gt: ["$dueDate", "$milestone.dueDate"] },
       },
     },
@@ -436,6 +463,31 @@ async function runAllConflictChecks(workspaceId) {
 }
 
 /**
+ * Schedules a debounced conflict detection run for a workspace.
+ * Prevents rapid task updates on the same workspace from spawning
+ * multiple overlapping aggregation pipelines.
+ */
+function scheduleDebouncedConflictCheck(workspaceId, delayMs = 500) {
+  if (!workspaceId || !mongoose.Types.ObjectId.isValid(workspaceId)) {
+    return;
+  }
+
+  const wsIdStr = String(workspaceId);
+  if (activeDebounceTimers.has(wsIdStr)) {
+    clearTimeout(activeDebounceTimers.get(wsIdStr));
+  }
+
+  const timer = setTimeout(() => {
+    activeDebounceTimers.delete(wsIdStr);
+    runAllConflictChecks(wsIdStr).catch((err) => {
+      console.error(`Debounced conflict check error for workspace ${wsIdStr}:`, err);
+    });
+  }, delayMs);
+
+  activeDebounceTimers.set(wsIdStr, timer);
+}
+
+/**
  * Gets all detected suggestions for a workspace.
  */
 async function getWorkspaceSuggestions(workspaceId, options = {}) {
@@ -465,7 +517,7 @@ async function validateSuggestion(suggestionId) {
   return Suggestion.findByIdAndUpdate(
     suggestionId,
     { $set: { validated: true, updatedAt: new Date() } },
-    { new: true }
+    { returnDocument: "after" }
   );
 }
 
@@ -475,6 +527,7 @@ module.exports = {
   detectMilestoneMismatches,
   detectDueDateClustering,
   runAllConflictChecks,
+  scheduleDebouncedConflictCheck,
   getWorkspaceSuggestions,
   validateSuggestion,
 };

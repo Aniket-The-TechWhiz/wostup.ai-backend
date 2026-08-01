@@ -112,9 +112,10 @@ async function updateTaskService(taskId, userId, body) {
         }
     }
 
-    const data = await Task.updateOne(
+    const data = await Task.findOneAndUpdate(
         { _id: taskId },
-        { $set: body }
+        { $set: body },
+        { new: true }
     );
 
     return { statuscode: 200, data };
