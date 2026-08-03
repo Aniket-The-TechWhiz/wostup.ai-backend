@@ -172,6 +172,8 @@ const validators = {
         projectId: { bsonType: "objectId" },
         milestoneId: { bsonType: ["objectId", "null"] },
         dueDate: { bsonType: "date" },
+        // NEW: track when the current status was entered
+        statusEnteredAt: { bsonType: "date" },
         comments: {
           bsonType: "array",
           items: {
@@ -429,12 +431,16 @@ const validators = {
       properties: {
         _id: { bsonType: "objectId" },
         workspaceId: { bsonType: "objectId" },
+        // NEW: projectId (optional) for stuck task alerts
+        projectId: { bsonType: "objectId" },
         risk_category: {
           enum: [
             "Cross-Project Conflict",
             "Dependency Conflict",
             "Milestone Mismatch",
             "Due-Date Clustering",
+            "Stuck Task",     // NEW
+            "Overload",       // NEW
           ],
         },
         risk_score: { bsonType: ["int", "double"] },
@@ -447,10 +453,14 @@ const validators = {
             id: { bsonType: "objectId" },
           },
         },
+        // NEW: message field (optional)
+        message: { bsonType: "string" },
         details: { bsonType: ["object", "null"] },
         phrased_text: { bsonType: ["string", "null"] },
         validated: { bsonType: "bool" },
         model_version: { bsonType: "string" },
+        // NEW: status lifecycle
+        status: { enum: ["active", "resolved", "dismissed"] },
         createdAt: { bsonType: "date" },
         updatedAt: { bsonType: "date" },
       },

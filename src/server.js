@@ -1,4 +1,4 @@
-require("dotenv").config();
+require('dotenv').config({ path: '../.env' });
 
 const { app, server, io } = require("./app"); // ✅ FIXED IMPORT
 const { connectToMongo } = require("./db/mongo");
@@ -29,6 +29,7 @@ async function startServer() {
     require("./workers/notifier.js");
     require("./workers/dealdine.worker.js");
     require("./workers/emailVerification.worker");
+    require("./workers/stuckTask.worker.js");
     // ✅ START ONLY ONE SERVER
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

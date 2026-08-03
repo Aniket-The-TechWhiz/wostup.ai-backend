@@ -31,6 +31,8 @@ const suggestionSchema = new mongoose.Schema(
         "Dependency Conflict",
         "Milestone Mismatch",
         "Due-Date Clustering",
+        "Stuck Task",        // NEW
+        "Overload",          // NEW
       ],
     },
     risk_score: {
@@ -65,6 +67,12 @@ const suggestionSchema = new mongoose.Schema(
     model_version: {
       type: String,
       default: "conflict_v1",
+    },
+    // NEW: lifecycle status for suggestions (used by stuck task detector)
+    status: {
+      type: String,
+      enum: ["active", "resolved", "dismissed"],
+      default: "active",
     },
   },
   {

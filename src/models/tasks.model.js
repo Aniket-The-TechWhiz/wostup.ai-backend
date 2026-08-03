@@ -23,6 +23,11 @@ const taskSchema = new mongoose.Schema(
       enum: ["todo", "in-progress", "blocked", "waiting-review", "done"],
       required: true,
     },
+    // NEW: timestamp when current status was set
+    statusEnteredAt: {
+      type: Date,
+      default: Date.now,
+    },
     priority: {
       type: String,
       enum: ["Low", "Medium", "High", "Critical"],
@@ -35,18 +40,10 @@ const taskSchema = new mongoose.Schema(
     },
     actualProgress: { type: Number, min: 0, max: 100, default: 0 },
     
-    // Updated with ref: "User"
     assigneeUserId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "User" },
-    
-    // Updated with ref: "User"
     createdBy: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "User" },
-    
-    // Updated with ref: "Project"
     projectId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Project" },
-    
-    // Updated with ref: "Milestone"
     milestoneId: { type: mongoose.Schema.Types.ObjectId, default: null, ref: "Milestone" },
-    
     dependency: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     dueDate: { type: Date, required: true },
     comments: { type: [commentSchema], default: [] },
